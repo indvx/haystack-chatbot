@@ -1,9 +1,11 @@
+fastapi[standard]
+uvicorn
+weaviate-haystack
+google-genai-haystack
 haystack-ai
 datasets>=2.6.1
 pypdf
 duckduckgo-search
-weaviate-haystack
-google-genai-haystack
 ddgs
 python-dotenv
 python-decouple

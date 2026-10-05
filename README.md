@@ -1,71 +1,77 @@
-# Haystack Chatbot
+# Haystack Chatbot REST API
 
-This repository contains the implementation of a chatbot powered by [Haystack](https://haystack.deepset.ai/), designed for advanced natural language processing tasks such as question answering, semantic search, and conversational AI.
+A production-ready FastAPI backend for the **Haystack Chatbot**, supporting document indexing and retrieval-augmented search (RAG) with Web Search fallback.
+
+---
 
 ## Features
 
-- **Semantic Search**: Retrieve relevant documents based on user queries using state-of-the-art models.
-- **Question Answering**: Extract precise answers from documents or knowledge bases.
-- **Conversational AI**: Engage in multi-turn conversations with context awareness.
-- **Extensible Pipelines**: Easily add or modify components (retrievers, readers, etc.) in the Haystack pipeline.
-- **Integration Ready**: Designed for easy integration with messaging platforms and web interfaces.
+- **Document Ingestion API (`POST /api/upload`)**: Upload PDF, TXT, or CSV files to automatically clean, chunk, embed, and index them into Weaviate Vector Store using Haystack pipelines.
+- **Search & AI Query API (`POST /api/search`)**: Submit queries to retrieve context-aware answers using Haystack RAG with real-time Web Search fallback.
+- **Interactive Swagger Documentation**: Built-in interactive API docs accessible via `/docs` or `/redoc`.
+- **Production Architecture**: Strict Pydantic data schemas, structured logging, CORS middleware, and global exception handlers.
 
-## Technologies
+---
 
-- **Haystack Framework**
-- **Google-Gemini-Chat-Model And Google-Gemini-Embbeding-Model**
-- **Weaviate Vector Database**
+## Tech Stack
 
-## Getting Started
+- **Framework**: FastAPI + Uvicorn
+- **AI Framework**: Haystack (haystack-ai)
+- **Generative & Embedding Models**: Google Gemini (`gemini-2.5-flash` & `text-embedding-004`)
+- **Vector Database**: Weaviate (`weaviate-haystack`)
 
-### Prerequisites
+---
 
-- Python 3.8+
-- [Haystack](https://github.com/deepset-ai/haystack)
-- Other dependencies listed in `requirements.txt`
+## API Endpoints Overview
 
-### Installation
+| Method | Endpoint | Description | Payload / Query |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/upload` | Upload & Index Documents | `multipart/form-data` with `files` (`.pdf`, `.txt`, `.csv`) |
+| `POST` | `/api/search` | Search & Ask AI Assistant | `application/json` `{ "query": "Your question..." }` |
+| `GET`  | `/health` | API Health & Storage Check | None |
+| `GET`  | `/docs` | Interactive Swagger OpenAPI Docs | None |
 
-Clone the repository and install dependencies:
-```
-cd
-git clone https://github.com/DilipGoud03/haystack-chatbot.git
-cd haystack-chatbot
-```
+---
 
-- create vertual enviorment
-```
-python -m venv haystack-chatbot-venv
-```
+## Running the Server
 
-- Activate vertual enviorment
-```
-source haystack-chatbot-venv/bin/activate
-```
-
-### Install dependencies
-```
-pip install -r requirement.txt
+### 1. Environment Setup
+Create a `.env` file in the project root:
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+DOC_DIR=./documents
+PNG_DIR=./pngs
+WEAVIATE_URL=http://localhost:8080
 ```
 
-### Process to run this code 
-```
+### 2. Start Weaviate Vector DB
+Ensure Weaviate is running locally via Docker:
+```bash
 docker compose up -d
 ```
-- Above comand setup a weaviate db as localy.
-- Then open project directory and upload any text or doc file into documents directory
-- if documents directory not available run below command.
-```
-mkdir documets
 
+### 3. Run FastAPI Application
+Start the Uvicorn development server:
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
-- after uploading file run
-```
-python services/file_upload_service.py
-```
-- above command upload your data into vector db (ie- weaviate db)
-- Now setup is completed simply run below command to run the project
-```
-python chat.py
+Access Swagger API documentation at: `http://localhost:8000/docs`
+
+---
+
+## Sample Request Usage
+
+### 1. Upload Document API
+```bash
+curl -X POST "http://localhost:8000/api/upload" \
+  -F "files=@/path/to/sample.pdf"
 ```
 
+### 2. Search API
+```bash
+curl -X POST "http://localhost:8000/api/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What are the key findings in the uploaded document?"
+  }'
+```
