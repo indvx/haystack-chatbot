@@ -1,31 +1,31 @@
 import logging
 import os
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from decouple import config
 
-# ------------------------------------------------------------
-# Centralized Logger for FastAPI app
-# Prevents reinitialization during auto-reload
-# ------------------------------------------------------------
+LOG_DIR = Path(config("LOG_DIR", default="./logs"))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_FILE = LOG_DIR / "app.log"
 
-LOG_DIR = "logs"
-os.makedirs(LOG_DIR, exist_ok=True)
-LOG_FILE = os.path.join(LOG_DIR, "app.log")
+# Keep logging setup in one place so reloads don't add duplicate handlers.
+logger = logging.getLogger("haystack-chatbot")
+logger.setLevel(logging.INFO)
+logger.propagate = False
 
-# Avoid multiple handler setup on reload
-root_logger = logging.getLogger()
-if not root_logger.hasHandlers():
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
-        handlers=[
-            logging.FileHandler(LOG_FILE, encoding="utf-8"),
-            logging.StreamHandler(),
-        ],
+if not logger.handlers:
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
-# Silence watchfiles reload spam
-logging.getLogger("watchfiles").setLevel(logging.WARNING)
-logging.getLogger("watchfiles.main").setLevel(logging.WARNING)
+    file_handler = RotatingFileHandler(
+        LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
-# Application logger
-logger = logging.getLogger("app_logger")
-logger.info(" Logger initialized successfully.")
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+logging.getLogger("watchfiles").setLevel(logging.WARNING)
