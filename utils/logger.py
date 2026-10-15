@@ -1,16 +1,11 @@
 import logging
 import os
 
-# ------------------------------------------------------------
-# Centralized Logger for FastAPI app
-# Prevents reinitialization during auto-reload
-# ------------------------------------------------------------
-
+# Set up the app logger once so reloads don't add duplicate handlers.
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = os.path.join(LOG_DIR, "app.log")
 
-# Avoid multiple handler setup on reload
 root_logger = logging.getLogger()
 if not root_logger.hasHandlers():
     logging.basicConfig(
@@ -22,10 +17,9 @@ if not root_logger.hasHandlers():
         ],
     )
 
-# Silence watchfiles reload spam
+# Keep file-watcher reload messages out of normal logs.
 logging.getLogger("watchfiles").setLevel(logging.WARNING)
 logging.getLogger("watchfiles.main").setLevel(logging.WARNING)
 
-# Application logger
 logger = logging.getLogger("app_logger")
 logger.info(" Logger initialized successfully.")

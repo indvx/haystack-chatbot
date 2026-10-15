@@ -32,7 +32,7 @@ class FileUploadService:
     def upload_data(
         self, target_files: Optional[List[Union[str, Path]]] = None
     ) -> dict:
-        """Processes document files through the Haystack indexing pipeline."""
+        """Run supported files through the indexing pipeline."""
         if target_files:
             file_paths = [Path(f) for f in target_files if os.path.isfile(f)]
         else:
@@ -92,10 +92,12 @@ class FileUploadService:
         )
         indexing_pipeline.connect("file_type_router.text/csv", "csv_converter.sources")
 
+        # Send each supported format through its converter, then join the documents.
         indexing_pipeline.connect("text_converter", "joiner")
         indexing_pipeline.connect("pdf_converter", "joiner")
         indexing_pipeline.connect("csv_converter", "joiner")
 
+        # Clean and split text before embedding it for the vector store.
         indexing_pipeline.connect("joiner", "cleaner")
         indexing_pipeline.connect("cleaner", "splitter")
         indexing_pipeline.connect("splitter.documents", "metadata_cleaner.documents")
@@ -120,6 +122,7 @@ class FileUploadService:
 
 @component
 class MetadataCleaner:
+    """Keep only the metadata fields used by the search pipeline."""
 
     @component.output_types(documents=list[Document])
     def run(self, documents: list[Document]):

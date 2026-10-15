@@ -41,6 +41,7 @@ search_service = SearchService()
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    """Log unexpected errors and return the API's standard error response."""
     logger.error(f"Error handling {request.url.path}: {exc}", exc_info=True)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -54,6 +55,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.get("/", summary="Root status", tags=["Health"])
 async def root():
+    """Return a small response to confirm the API is running."""
     return {
         "status": "online",
         "service": "Haystack Chatbot API",
@@ -63,6 +65,7 @@ async def root():
 
 @app.get("/health", summary="Health check", tags=["Health"])
 async def health_check():
+    """Report whether the configured document directory exists."""
     return {
         "status": "healthy",
         "doc_dir": str(DOC_DIR.resolve()),
@@ -85,7 +88,7 @@ ALLOWED_EXTENSIONS = {".pdf", ".txt", ".csv"}
     },
 )
 async def upload_documents(file: UploadFile = File(...)):
-    """Upload PDF, TXT, or CSV files to index into the vector store."""
+    """Save an allowed file and add its contents to the search index."""
     if not file:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -115,6 +118,7 @@ async def upload_documents(file: UploadFile = File(...)):
         await file.close()
 
     try:
+        # Index only after the file has been saved successfully.
         index_result = file_upload_service.upload_data(target_files=[target_path])
         logger.info(f"Indexing completed: {index_result}")
     except Exception as e:
@@ -143,7 +147,7 @@ async def upload_documents(file: UploadFile = File(...)):
     },
 )
 async def search(request: SearchRequest):
-    """Query the Haystack assistant using RAG search with web fallback."""
+    """Search indexed documents and use the result to answer a question."""
     if not request.query.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
