@@ -1,31 +1,25 @@
 import logging
 import os
-from logging.handlers import RotatingFileHandler
-from pathlib import Path
-from decouple import config
 
-LOG_DIR = Path(config("LOG_DIR", default="./logs"))
-LOG_DIR.mkdir(parents=True, exist_ok=True)
-LOG_FILE = LOG_DIR / "app.log"
+# Set up the app logger once so reloads don't add duplicate handlers.
+LOG_DIR = "logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "app.log")
 
-# Keep logging setup in one place so reloads don't add duplicate handlers.
-logger = logging.getLogger("haystack-chatbot")
-logger.setLevel(logging.INFO)
-logger.propagate = False
-
-if not logger.handlers:
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+root_logger = logging.getLogger()
+if not root_logger.hasHandlers():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+        handlers=[
+            logging.FileHandler(LOG_FILE, encoding="utf-8"),
+            logging.StreamHandler(),
+        ],
     )
 
-    file_handler = RotatingFileHandler(
-        LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3
-    )
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-
+# Keep file-watcher reload messages out of normal logs.
 logging.getLogger("watchfiles").setLevel(logging.WARNING)
+logging.getLogger("watchfiles.main").setLevel(logging.WARNING)
+
+logger = logging.getLogger("app_logger")
+logger.info(" Logger initialized successfully.")
